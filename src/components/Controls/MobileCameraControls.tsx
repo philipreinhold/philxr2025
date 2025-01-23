@@ -15,47 +15,65 @@ export function MobileCameraControls({
   useDeviceOrientation = false 
 }: MobileCameraControlsProps) {
   const { camera } = useThree();
-  const speedRef = useRef(0.15);
-  const rotationSpeedRef = useRef(0.05);
+  const moveSpeed = useRef(0.15);
+  const rotationSpeed = useRef(0.05);
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ')); // YXZ order ist wichtig für FPS-Style
+  const initialY = useRef(1.7); // Konstante Höhe
 
   useFrame(() => {
-    // Handle Movement
+    if (!useDeviceOrientation) {
+      // Look/Rotation
+      if (lookRef.current) {
+        // Horizontale Rotation (um globale Y-Achse)
+        euler.current.y -= lookRef.current.x * rotationSpeed.current;
+        
+        // Vertikale Rotation (um lokale X-Achse)
+        euler.current.x = THREE.MathUtils.clamp(
+          euler.current.x - lookRef.current.y * rotationSpeed.current,
+          -Math.PI / 2.5, // Begrenzt den Blick nach oben
+          Math.PI / 2.5  // Begrenzt den Blick nach unten
+        );
+        
+        // Keine Z-Rotation (verhindert Rollen)
+        euler.current.z = 0;
+        
+        // Anwenden der Rotation
+        camera.quaternion.setFromEuler(euler.current);
+      }
+    }
+
+    // Movement
     if (movementRef.current) {
+      // Bewegungsrichtung basierend auf Kameraausrichtung
       const forward = new THREE.Vector3(0, 0, -1);
       forward.applyQuaternion(camera.quaternion);
-      forward.y = 0;
+      forward.y = 0; // Horizontale Bewegung
       forward.normalize();
 
       const right = new THREE.Vector3(1, 0, 0);
       right.applyQuaternion(camera.quaternion);
-      right.y = 0;
+      right.y = 0; // Horizontale Bewegung
       right.normalize();
 
       const moveVector = new THREE.Vector3();
       moveVector
-        .addScaledVector(forward, -movementRef.current.y * speedRef.current)
-        .addScaledVector(right, movementRef.current.x * speedRef.current);
+        .addScaledVector(forward, -movementRef.current.y * moveSpeed.current)
+        .addScaledVector(right, movementRef.current.x * moveSpeed.current);
 
+      // Bewegung anwenden
       camera.position.add(moveVector);
-    }
-
-    // Handle Look/Rotation only if not using device orientation
-    if (!useDeviceOrientation && lookRef.current) {
-      camera.rotation.y -= lookRef.current.x * rotationSpeedRef.current;
       
-      const newRotationX = camera.rotation.x - lookRef.current.y * rotationSpeedRef.current;
-      camera.rotation.x = THREE.MathUtils.clamp(
-        newRotationX,
-        -Math.PI / 2.5,
-        Math.PI / 2.5
-      );
+      // Konstante Höhe beibehalten
+      camera.position.y = initialY.current;
     }
   });
 
+  // Reset camera rotation when unmounting
   useEffect(() => {
     return () => {
       if (camera) {
         camera.rotation.set(0, 0, 0);
+        camera.position.y = initialY.current;
       }
     };
   }, [camera]);

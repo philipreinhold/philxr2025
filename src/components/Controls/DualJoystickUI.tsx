@@ -9,10 +9,44 @@ interface DualJoystickUIProps {
 export function DualJoystickUI({ onMove, onLook }: DualJoystickUIProps) {
   const leftJoystickRef = useRef<HTMLDivElement>(null);
   const rightJoystickRef = useRef<HTMLDivElement>(null);
+  const leftKnobRef = useRef<HTMLDivElement>(null);
+  const rightKnobRef = useRef<HTMLDivElement>(null);
   const leftStartRef = useRef<{ x: number; y: number } | null>(null);
   const rightStartRef = useRef<{ x: number; y: number } | null>(null);
   const leftActiveRef = useRef(false);
   const rightActiveRef = useRef(false);
+  
+  // Konstanten
+  const DAMPING = 0.15;
+  const MAX_OFFSET = 20;
+
+  const updateStickPosition = useCallback((currentPos: { x: number; y: number }, 
+                                        startPos: { x: number; y: number }, 
+                                        isLeft: boolean) => {
+    const knobRef = isLeft ? leftKnobRef.current : rightKnobRef.current;
+    if (!knobRef) return { x: 0, y: 0 };
+
+    // Berechne den Versatz
+    let deltaX = currentPos.x - startPos.x;
+    let deltaY = currentPos.y - startPos.y;
+    
+    // Begrenze den maximalen Versatz
+    const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    if (length > MAX_OFFSET) {
+      const scale = MAX_OFFSET / length;
+      deltaX *= scale;
+      deltaY *= scale;
+    }
+
+    // Aktualisiere die Position direkt über style.transform
+    knobRef.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+
+    // Gib gedämpfte Werte für die Steuerung zurück
+    return {
+      x: (deltaX / MAX_OFFSET) * DAMPING,
+      y: (deltaY / MAX_OFFSET) * DAMPING
+    };
+  }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent, isLeft: boolean) => {
     e.preventDefault();
@@ -37,15 +71,21 @@ export function DualJoystickUI({ onMove, onLook }: DualJoystickUIProps) {
     
     if (!startPos) return;
 
-    const deltaX = (pos.clientX - startPos.x) / 50; // Sensitivität
-    const deltaY = (pos.clientY - startPos.y) / 50;
+    const movement = updateStickPosition({ x: pos.clientX, y: pos.clientY }, startPos, isLeft);
 
     if (isLeft) {
-      onMove({ x: deltaX, y: deltaY });
+      onMove(movement);
     } else {
-      onLook({ x: deltaX, y: deltaY });
+      onLook(movement);
     }
-  }, [onMove, onLook]);
+  }, [onMove, onLook, updateStickPosition]);
+
+  const resetStick = useCallback((isLeft: boolean) => {
+    const knobRef = isLeft ? leftKnobRef.current : rightKnobRef.current;
+    if (knobRef) {
+      knobRef.style.transform = 'translate(-50%, -50%)';
+    }
+  }, []);
 
   const handleTouchEnd = useCallback((isLeft: boolean) => {
     if (isLeft) {
@@ -57,7 +97,8 @@ export function DualJoystickUI({ onMove, onLook }: DualJoystickUIProps) {
       rightActiveRef.current = false;
       onLook({ x: 0, y: 0 });
     }
-  }, [onMove, onLook]);
+    resetStick(isLeft);
+  }, [onMove, onLook, resetStick]);
 
   const handleMouseUp = useCallback(() => {
     if (leftActiveRef.current) handleTouchEnd(true);
@@ -70,49 +111,57 @@ export function DualJoystickUI({ onMove, onLook }: DualJoystickUIProps) {
       if (rightActiveRef.current) handleTouchMove(e as any, false);
     };
 
-    const handleGlobalMouseUp = () => {
-      handleMouseUp();
-    };
-
     window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [handleTouchMove, handleMouseUp]);
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-4 pointer-events-auto px-4">
-      {/* Linker Joystick - Bewegung */}
+      {/* Move Joystick - Lila */}
       <div 
         ref={leftJoystickRef}
-        className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full relative 
-                 cursor-pointer touch-none select-none"
+        className="w-24 h-24 rounded-full relative cursor-pointer touch-none select-none"
+        style={{ backgroundColor: 'rgba(147, 51, 234, 0.2)' }}
         onMouseDown={(e) => handleTouchStart(e, true)}
         onTouchStart={(e) => handleTouchStart(e, true)}
         onTouchMove={(e) => handleTouchMove(e, true)}
         onTouchEnd={() => handleTouchEnd(true)}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
-                      w-12 h-12 bg-white/40 backdrop-blur-md rounded-full" />
+        <div 
+          ref={leftKnobRef}
+          className="absolute top-1/2 left-1/2 w-12 h-12 rounded-full transition-transform duration-75"
+          style={{ 
+            backgroundColor: 'rgba(147, 51, 234, 0.4)',
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
                        text-xs text-black/60">Move</span>
       </div>
 
-      {/* Rechter Joystick - Umsehen */}
+      {/* Look Joystick - Orange */}
       <div 
         ref={rightJoystickRef}
-        className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full relative 
-                 cursor-pointer touch-none select-none"
+        className="w-24 h-24 rounded-full relative cursor-pointer touch-none select-none"
+        style={{ backgroundColor: 'rgba(251, 146, 60, 0.2)' }}
         onMouseDown={(e) => handleTouchStart(e, false)}
         onTouchStart={(e) => handleTouchStart(e, false)}
         onTouchMove={(e) => handleTouchMove(e, false)}
         onTouchEnd={() => handleTouchEnd(false)}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
-                      w-12 h-12 bg-white/40 backdrop-blur-md rounded-full" />
+        <div 
+          ref={rightKnobRef}
+          className="absolute top-1/2 left-1/2 w-12 h-12 rounded-full transition-transform duration-75"
+          style={{ 
+            backgroundColor: 'rgba(251, 146, 60, 0.4)',
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
                        text-xs text-black/60">Look</span>
       </div>

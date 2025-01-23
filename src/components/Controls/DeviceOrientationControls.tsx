@@ -3,94 +3,79 @@ import { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-declare global {
-  interface DeviceOrientationEvent {
-    requestPermission?: () => Promise<'granted' | 'denied'>;
-  }
-  interface Window {
-    isSecureContext: boolean;
-  }
-}
-
 interface DeviceOrientationControlsProps {
   enabled: boolean;
 }
 
 export function DeviceOrientationControls({ enabled }: DeviceOrientationControlsProps) {
   const { camera } = useThree();
-  const orientationRef = useRef({ x: 0, y: 0, z: 0 });
-  const startOrientationRef = useRef<null | { x: number; y: number; z: number }>(null);
-  const isIOS = useRef(false);
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
+  const initialY = useRef(1.7);
+  const startOrientationRef = useRef<null | { beta: number; gamma: number; alpha: number }>(null);
 
   useEffect(() => {
-    // iOS Erkennung
-    isIOS.current = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-
     if (!enabled) return;
 
     const handleDeviceOrientation = (event: DeviceOrientationEvent) => {
-      if (!event.beta || !event.alpha || !event.gamma) return;
+      if (!event.beta || !event.gamma || !event.alpha) return;
 
-      let x = event.beta * Math.PI / 180;   // X-Achse [-180, 180]
-      let y = event.alpha * Math.PI / 180;  // Y-Achse [0, 360]
-      let z = event.gamma * Math.PI / 180;  // Z-Achse [-90, 90]
-
-      // Initialisiere Startorientierung
+      // Erste Orientierung als Referenz speichern
       if (!startOrientationRef.current) {
-        startOrientationRef.current = { x, y, z };
+        startOrientationRef.current = {
+          beta: event.beta,
+          gamma: event.gamma,
+          alpha: event.alpha
+        };
         return;
       }
 
-      // Berechne relative Änderungen
-      const deltaX = x - startOrientationRef.current.x;
-      const deltaY = y - startOrientationRef.current.y;
-      const deltaZ = z - startOrientationRef.current.z;
+      // Relative Änderungen berechnen
+      const deltaX = THREE.MathUtils.degToRad(event.beta - startOrientationRef.current.beta);
+      const deltaY = THREE.MathUtils.degToRad(event.alpha - startOrientationRef.current.alpha);
 
-      // Aktualisiere Kamerarotation
-      // Für iOS müssen wir die Achsen anders zuweisen
-      if (isIOS.current) {
-        camera.rotation.x = THREE.MathUtils.clamp(deltaX, -Math.PI / 2, Math.PI / 2);
-        camera.rotation.y = -deltaZ;
-      } else {
-        camera.rotation.x = THREE.MathUtils.clamp(-deltaX, -Math.PI / 2, Math.PI / 2);
-        camera.rotation.y = -deltaZ;
-      }
+      // Vertikale Rotation (X-Achse)
+      euler.current.x = THREE.MathUtils.clamp(
+        -deltaX,
+        -Math.PI / 2.5,
+        Math.PI / 2.5
+      );
+
+      // Horizontale Rotation (Y-Achse)
+      euler.current.y = -THREE.MathUtils.degToRad(event.alpha);
+
+      // Keine Z-Rotation (verhindert Rollen)
+      euler.current.z = 0;
+
+      // Anwenden der Rotation
+      camera.quaternion.setFromEuler(euler.current);
+      
+      // Konstante Höhe beibehalten
+      camera.position.y = initialY.current;
     };
 
-    const initOrientation = async () => {
-      // Überprüfe HTTPS
-      if (!window.isSecureContext) {
-        console.error('Device orientation requires HTTPS');
-        return;
-      }
-
-      try {
-        // iOS Berechtigungsanfrage
-        if (isIOS.current && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    const requestPermission = async () => {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
           const permission = await DeviceOrientationEvent.requestPermission();
           if (permission === 'granted') {
             window.addEventListener('deviceorientation', handleDeviceOrientation, true);
-          } else {
-            console.warn('Device orientation permission denied');
           }
-        } else {
-          // Für Android und andere Geräte
-          window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+        } catch (error) {
+          console.warn('Device orientation permission denied:', error);
         }
-      } catch (error) {
-        console.error('Error initializing device orientation:', error);
+      } else {
+        window.addEventListener('deviceorientation', handleDeviceOrientation, true);
       }
     };
 
-    initOrientation();
+    requestPermission();
 
-    // Cleanup
     return () => {
       window.removeEventListener('deviceorientation', handleDeviceOrientation, true);
       startOrientationRef.current = null;
-      // Reset camera rotation
       if (camera) {
         camera.rotation.set(0, 0, 0);
+        camera.position.y = initialY.current;
       }
     };
   }, [camera, enabled]);
