@@ -18,8 +18,33 @@ const Interface = () => {
 
  return (
    <header className="fixed top-0 left-0 right-0 p-4 z-50 bg-white/80 backdrop-blur-sm">
-     <div className="max-w-7xl mx-auto">
-       <div className="flex justify-between items-center">
+     <div className="max-w-7xl mx-auto relative">
+       {/* Language Selector */}
+       <div className="absolute top-1 right-0 z-50 flex items-center gap-1 text-sm">
+         <button 
+           onClick={() => setLanguage('en')}
+           className={`px-3 py-1 transition-colors ${
+             language === 'en' 
+               ? 'border border-black' 
+               : 'text-neutral-500 hover:text-black'
+           }`}
+         >
+           EN
+         </button>
+         <span className="text-neutral-300">|</span>
+         <button 
+           onClick={() => setLanguage('es')}
+           className={`px-3 py-1 transition-colors ${
+             language === 'es' 
+               ? 'border border-black' 
+               : 'text-neutral-500 hover:text-black'
+           }`}
+         >
+           ES
+         </button>
+       </div>
+
+       <div className="flex justify-between items-center pt-8">
          <Link to="/" className="group">
            <h1 className="text-xl md:text-2xl font-light tracking-wide">
              Philip Reinhold
@@ -29,87 +54,63 @@ const Interface = () => {
            </span>
          </Link>
 
-         <div className="flex items-center gap-4">
-           <div className="relative group z-50">
-             <button className="px-3 py-1 text-sm bg-white/50 rounded hover:bg-white/80 transition-colors">
-               {language.toUpperCase()} ▼
-             </button>
-             <div className="absolute right-0 mt-1 hidden group-hover:block">
-               <div className="bg-white rounded shadow-lg py-1">
-                 <button 
-                   className="px-4 py-1 w-full text-left hover:bg-gray-100"
-                   onClick={() => setLanguage('en')}
-                 >
-                   English
-                 </button>
-                 <button 
-                   className="px-4 py-1 w-full text-left hover:bg-gray-100"
-                   onClick={() => setLanguage('es')}
-                 >
-                   Español
-                 </button>
-               </div>
-             </div>
-           </div>
-
-           <button
-             className="md:hidden p-2"
-             onClick={() => setIsMenuOpen(!isMenuOpen)}
+         <button
+           className="md:hidden p-2"
+           onClick={() => setIsMenuOpen(!isMenuOpen)}
+         >
+           <svg
+             className="w-6 h-6"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24"
            >
-             <svg
-               className="w-6 h-6"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24"
-             >
-               {isMenuOpen ? (
-                 <path
-                   strokeLinecap="round"
-                   strokeLinejoin="round"
-                   strokeWidth={2}
-                   d="M6 18L18 6M6 6l12 12"
-                 />
-               ) : (
-                 <path
-                   strokeLinecap="round"
-                   strokeLinejoin="round"
-                   strokeWidth={2}
-                   d="M4 6h16M4 12h16M4 18h16"
-                 />
-               )}
-             </svg>
-           </button>
+             {isMenuOpen ? (
+               <path
+                 strokeLinecap="round"
+                 strokeLinejoin="round"
+                 strokeWidth={2}
+                 d="M6 18L18 6M6 6l12 12"
+               />
+             ) : (
+               <path
+                 strokeLinecap="round"
+                 strokeLinejoin="round"
+                 strokeWidth={2}
+                 d="M4 6h16M4 12h16M4 18h16"
+               />
+             )}
+           </svg>
+         </button>
 
-           <nav className="hidden md:flex space-x-8">
-             {navigationItems.map(({ path, key }) => (
-               <Link 
-                 key={key}
-                 to={path} 
+         <nav className="hidden md:flex space-x-8">
+           {navigationItems.map(({ path, key }) => (
+             <Link 
+               key={key}
+               to={path} 
+               className={`
+                 relative px-4 py-2 text-sm uppercase tracking-wider transition-colors
+                 ${location.pathname === path 
+                   ? 'text-black' 
+                   : 'text-neutral-500 hover:text-black'
+                 }
+               `}
+             >
+               <span className="relative z-10">
+                 {translations.navigation[key][language]}
+               </span>
+               <div 
                  className={`
-                   relative px-4 py-2 text-sm uppercase tracking-wider transition-colors
+                   absolute inset-0 border border-black transform origin-left
+                   transition-transform duration-300 ease-out
                    ${location.pathname === path 
-                     ? 'text-black' 
-                     : 'text-neutral-500 hover:text-black'
+                     ? 'scale-x-100' 
+                     : 'scale-x-0 group-hover:scale-x-100'
                    }
                  `}
-               >
-                 <span className="relative z-10">
-                   {translations.navigation[key][language]}
-                 </span>
-                 <div 
-                   className={`
-                     absolute inset-0 border border-black transform origin-left
-                     transition-transform duration-300 ease-out
-                     ${location.pathname === path 
-                       ? 'scale-x-100' 
-                       : 'scale-x-0 group-hover:scale-x-100'
-                     }
-                   `}
-                 />
-               </Link>
-             ))}
-           </nav>
-         </div>
+               />
+             </Link>
+           ))}
+         </nav>
        </div>
 
        {isMenuOpen && (

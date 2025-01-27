@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useRef, useState, useCallback, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
@@ -145,7 +146,7 @@ function App() {
            <Routes location={location} key={location.pathname}>
              <Route path="/" element={null} />
              <Route path="/about" element={<About />} />
-             <Route path="/projects" element={<Projects />} />
+             <Route path="/projects/*" element={<Projects />} />
              <Route path="/services" element={<Services />} />
              <Route path="/contact" element={<Contact />} />
            </Routes>

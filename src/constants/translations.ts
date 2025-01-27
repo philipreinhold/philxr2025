@@ -1,37 +1,75 @@
 // src/constants/translations.ts
 export const translations = {
-    header: {
-      role: {
-        en: 'XR & Film Artist',
-        es: 'Artista XR y Cine'
-      }
+  header: {
+    role: {
+      en: 'XR & Film Artist',
+      es: 'Artista XR y Cine'
+    }
+  },
+  navigation: {
+    projects: { en: 'Projects', es: 'Proyectos' },
+    about: { en: 'About', es: 'Sobre mí' },
+    services: { en: 'Services', es: 'Servicios' },
+    contact: { en: 'Contact', es: 'Contacto' }
+  },
+  services: {
+    title: {
+      en: 'Services',
+      es: 'Servicios'
     },
-    navigation: {
-      projects: { en: 'Projects', es: 'Proyectos' },
-      about: { en: 'About', es: 'Sobre mí' },
-      services: { en: 'Services', es: 'Servicios' },
-      contact: { en: 'Contact', es: 'Contacto' }
+    intro: {
+      en: 'Professional XR & Film Services',
+      es: 'Servicios Profesionales de XR y Cine'
     },
-    pages: {
-      projects: {
-        title: { en: 'Projects', es: 'Proyectos' },
-        description: { en: 'Selected works', es: 'Trabajos seleccionados' }
-      },
-      about: {
-        title: { en: 'About', es: 'Sobre mí' },
-        description: { 
-          en: 'XR Artist working on international XR Experiences, Films and Games since 2020.',
-          es: 'Artista XR trabajando en Experiencias XR, Películas y Juegos desde 2020.'
+    services: [
+      {
+        title: { en: 'XR Development', es: 'Desarrollo XR' },
+        description: {
+          en: 'Custom XR experiences and applications',
+          es: 'Experiencias y aplicaciones XR personalizadas'
         }
       },
-      services: {
-        title: { en: 'Services', es: 'Servicios' },
-        description: { en: 'Professional services', es: 'Servicios profesionales' }
-      },
-      contact: {
-        title: { en: 'Contact', es: 'Contacto' },
-        description: { en: 'Get in touch', es: 'Contáctame' }
+      {
+        title: { en: 'Film Production', es: 'Producción de Cine' },
+        description: {
+          en: 'From concept to final cut',
+          es: 'Del concepto al corte final'
+        }
       }
+    ]
+  },
+  about: {
+    title: {
+      en: 'About Me',
+      es: 'Sobre Mí'
+    },
+    intro: {
+      en: 'XR Artist & Film Professional',
+      es: 'Artista XR y Profesional de Cine'
+    },
+    biography: {
+      en: 'Your English bio here...',
+      es: 'Tu biografía en español aquí...'
     }
-   } as const
-   
+  },
+  projects: {
+    title: {
+      en: 'Projects',
+      es: 'Proyectos'
+    }
+  },
+  contact: {
+    title: {
+      en: 'Contact',
+      es: 'Contacto'
+    },
+    form: {
+      name: { en: 'Name', es: 'Nombre' },
+      email: { en: 'Email', es: 'Correo' },
+      message: { en: 'Message', es: 'Mensaje' },
+      send: { en: 'Send Message', es: 'Enviar Mensaje' },
+      whatsapp: { en: 'Send WhatsApp', es: 'Enviar WhatsApp' }
+    }
+  }
+ }
+ 

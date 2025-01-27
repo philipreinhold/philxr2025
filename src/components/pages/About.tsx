@@ -1,21 +1,32 @@
+// src/components/pages/About.tsx
 import PageWrapper from '../Layout/PageWrapper'
+import { useLanguageStore } from '../../store/languageStore'
+import { translations } from '../../constants/translations'
 
-const About = () => {
+export default function About() {
+  const { language } = useLanguageStore()
+  const content = translations.about
+  
   return (
     <PageWrapper>
-      <div className="space-y-12">
-        <section className="space-y-6">
-          <h2 className="text-xl font-light">About</h2>
-          <p className="text-neutral-800 leading-relaxed">
-            Cinematographer / Filmmaker & XR Artist working on international XR Experiences, 
-            Films and Games since 2020. Specializing in webXR, Unity, Unreal with a foundation 
-            in Computer Science & Digital Art.
-          </p>
-          {/* Rest of the content */}
-        </section>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="md:w-1/3">
+            <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src="/placeholder-portrait.jpg"
+                alt="Philip Reinhold"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+          <div className="md:w-2/3">
+            <h2 className="text-xl font-light mb-6">{content.title[language]}</h2>
+            <p className="text-lg mb-4">{content.intro[language]}</p>
+            <p className="text-neutral-600">{content.biography[language]}</p>
+          </div>
+        </div>
       </div>
     </PageWrapper>
   )
 }
-
-export default About
