@@ -1,4 +1,3 @@
-export * from './BauhausScene';
+export { default as World } from './World';
 export * from './DrawingStructure';
 export * from './ExhibitionRoom';
-export * from './World';

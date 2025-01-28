@@ -1,19 +1,15 @@
-import { useRef } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { MovementRef } from '../../types/controls';
 
-interface CameraControlsProps {
-  movement: MutableRefObject<MovementRef>;
-}
+export const CameraControls = ({ 
+  movementRef, 
+  lookRef,
+  useDeviceOrientation = false 
+}) => {
+  useFrame(({ camera }) => {
+    if (!movementRef?.current || useDeviceOrientation) return;
 
-export const CameraControls = ({ movement }: CameraControlsProps) => {
-  const { camera } = useThree();
-  const speedRef = useRef(0.15);
-
-  useFrame(() => {
-    if (!movement.current) return;
-
+    // Movement
     const forward = new THREE.Vector3(0, 0, -1);
     forward.applyQuaternion(camera.quaternion);
     forward.y = 0;
@@ -24,12 +20,18 @@ export const CameraControls = ({ movement }: CameraControlsProps) => {
     right.y = 0;
     right.normalize();
 
-    const moveVector = new THREE.Vector3();
-    moveVector
-      .addScaledVector(forward, -movement.current.y * speedRef.current)
-      .addScaledVector(right, movement.current.x * speedRef.current);
+    camera.position.addScaledVector(forward, -movementRef.current.y * 0.15);
+    camera.position.addScaledVector(right, movementRef.current.x * 0.15);
 
-    camera.position.add(moveVector);
+    // Look/Rotation
+    if (lookRef?.current) {
+      camera.rotation.y -= lookRef.current.x * 0.05;
+      camera.rotation.x = THREE.MathUtils.clamp(
+        camera.rotation.x - lookRef.current.y * 0.05,
+        -Math.PI / 2,
+        Math.PI / 2
+      );
+    }
   });
 
   return null;
