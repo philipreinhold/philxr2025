@@ -1,111 +1,78 @@
 // src/components/pages/Projects/HumanWithin/VR360Viewer.tsx
 import { useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface VR360ViewerProps {
- isOverUnder?: boolean;
+  imageUrl: string;
+  isOverUnder?: boolean;
+  controls?: {
+    movement: { x: number, y: number };
+    look: { x: number, y: number };
+  };
 }
 
-export default function VR360Viewer({ isOverUnder = true }: VR360ViewerProps) {
- const sphereRef = useRef<THREE.Mesh>(null);
- const keyStates = useRef({
-   ArrowLeft: false,
-   ArrowRight: false,
-   ArrowUp: false,
-   ArrowDown: false,
- });
+export default function VR360Viewer({ 
+  imageUrl, 
+  isOverUnder = true,
+  controls 
+}: VR360ViewerProps) {
+  const { camera } = useThree();
+  const sphereRef = useRef<THREE.Mesh>(null);
+  const rotationRef = useRef({ x: 0, y: 0, z: 0 });
 
- const rotationTarget = useRef({
-   x: 0,
-   y: Math.PI - Math.PI / 2.57,
-   z: 0,
- });
+  useEffect(() => {
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(imageUrl, (texture) => {
+      if (isOverUnder) {
+        texture.repeat.set(1, 0.5);
+        texture.offset.set(0, 0.5);
+      }
+      // SRGB Farbraum setzen
+      texture.colorSpace = THREE.SRGBColorSpace;
+      
+      if (sphereRef.current) {
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.BackSide
+        });
+        sphereRef.current.material = material;
+      }
+    });
+  }, [imageUrl, isOverUnder]);
 
- useEffect(() => {
-   console.log('Loading image from:', '/Images/HW_360_VR_COLOR_CHECK_LOW.jpg');
-   
-   const textureLoader = new THREE.TextureLoader();
-   const texture = textureLoader.load(
-     'src/components/Images/HW_360_VR_COLOR_CHECK_LOW.jpg',
-     (tex) => {
-       console.log('Texture loaded successfully');
-       if (isOverUnder) {
-         tex.repeat.set(1, 0.5);
-         tex.offset.set(0, 0);
-       }
-       tex.colorSpace = THREE.SRGBColorSpace;
-     },
-     undefined,
-     (error) => console.error('Error loading texture:', error)
-   );
+  // Frame-Update für Controls
+  useFrame(() => {
+    if (!sphereRef.current || !controls) return;
 
-   if (sphereRef.current) {
-     sphereRef.current.material = new THREE.MeshBasicMaterial({
-       map: texture,
-       side: THREE.BackSide,
-     });
-   }
+    // Movement Controls (Rotation basierend auf Bewegung)
+    rotationRef.current.y += controls.movement.x * 0.03;
+    rotationRef.current.x = THREE.MathUtils.clamp(
+      rotationRef.current.x + controls.movement.y * 0.03,
+      -Math.PI / 2,
+      Math.PI / 2
+    );
 
-   const handleKeyDown = (e: KeyboardEvent) => {
-     if (e.key in keyStates.current) {
-       keyStates.current[e.key as keyof typeof keyStates.current] = true;
-     }
-   };
+    // Look Controls (direkte Rotation)
+    if (controls.look) {
+      rotationRef.current.y += controls.look.x * 0.03;
+      rotationRef.current.x = THREE.MathUtils.clamp(
+        rotationRef.current.x + controls.look.y * 0.03,
+        -Math.PI / 2,
+        Math.PI / 2
+      );
+    }
 
-   const handleKeyUp = (e: KeyboardEvent) => {
-     if (e.key in keyStates.current) {
-       keyStates.current[e.key as keyof typeof keyStates.current] = false;
-     }
-   };
+    // Apply rotations with smooth damping
+    sphereRef.current.rotation.x += (rotationRef.current.x - sphereRef.current.rotation.x) * 0.1;
+    sphereRef.current.rotation.y += (rotationRef.current.y - sphereRef.current.rotation.y) * 0.1;
+    sphereRef.current.rotation.z += (0 - sphereRef.current.rotation.z) * 0.1;
+  });
 
-   window.addEventListener('keydown', handleKeyDown);
-   window.addEventListener('keyup', handleKeyUp);
-
-   return () => {
-     texture.dispose();
-     window.removeEventListener('keydown', handleKeyDown);
-     window.removeEventListener('keyup', handleKeyUp);
-   };
- }, [isOverUnder]);
-
- useFrame(() => {
-   if (sphereRef.current) {
-     if (keyStates.current.ArrowLeft) {
-       rotationTarget.current.y += 0.02;
-     }
-     if (keyStates.current.ArrowRight) {
-       rotationTarget.current.y -= 0.02;
-     }
-     if (keyStates.current.ArrowUp) {
-       rotationTarget.current.x = Math.min(
-         rotationTarget.current.x + 0.02,
-         Math.PI / 4
-       );
-     }
-     if (keyStates.current.ArrowDown) {
-       rotationTarget.current.x = Math.max(
-         rotationTarget.current.x - 0.02,
-         -Math.PI / 4
-       );
-     }
-
-     sphereRef.current.rotation.x += 
-       (rotationTarget.current.x - sphereRef.current.rotation.x) * 0.1;
-     sphereRef.current.rotation.y += 
-       (rotationTarget.current.y - sphereRef.current.rotation.y) * 0.1;
-   }
- });
-
- return (
-   <div style={{ width: '100%', height: '100vh' }}>
-     <Canvas camera={{ fov: 75, position: [0, 0, 0.1] }}>
-       <ambientLight intensity={1} />
-       <mesh ref={sphereRef}>
-         <sphereGeometry args={[500, 60, 40]} />
-         <meshBasicMaterial side={THREE.BackSide} />
-       </mesh>
-     </Canvas>
-   </div>
- );
+  return (
+    <mesh ref={sphereRef} rotation={[0, 0, 0]}>
+      <sphereGeometry args={[500, 60, 40]} />
+      <meshBasicMaterial side={THREE.BackSide} />
+    </mesh>
+  );
 }

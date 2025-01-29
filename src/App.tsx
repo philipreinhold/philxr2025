@@ -30,6 +30,10 @@ function App() {
     requestOrientationPermission,
   } = useViewerControls();
 
+  // Überprüfe, ob wir uns auf einer Projektseite befinden
+  const isProjectPage = location.pathname.startsWith('/projects/');
+  const showWorld = !isProjectPage;
+
   return (
     <div className="relative w-screen h-screen bg-white">
       <div className="absolute inset-0">
@@ -43,7 +47,8 @@ function App() {
           dpr={[1, 2]}
         >
           <Suspense fallback={null}>
-            <World />
+            {/* Zeige World nur wenn wir nicht auf einer Projektseite sind */}
+            {showWorld && <World />}
             <MobileCameraControls 
               movementRef={movementRef}
               lookRef={lookRef}
@@ -65,13 +70,14 @@ function App() {
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={null} />
               <Route path="/about" element={<About />} />
-              <Route path="/projects/*" element={<Projects />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:projectId" element={<Projects />} />
               <Route path="/services" element={<Services />} />
               <Route path="/contact" element={<Contact />} />
             </Routes>
           </AnimatePresence>
           
-          {isLocked && (
+          {isLocked && !isProjectPage && (
             <div className="fixed bottom-0 left-0 right-0 pb-4 pointer-events-none">
               <DualJoystickUI
                 onMove={(movement) => {
@@ -88,7 +94,7 @@ function App() {
         </div>
       </div>
 
-      {!isLocked && (
+      {!isLocked && !isProjectPage && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="space-y-4 text-center">
             <button 
@@ -108,7 +114,7 @@ function App() {
         </div>
       )}
 
-      {isLocked && (
+      {isLocked && !isProjectPage && (
         <div className="fixed top-0 left-0 right-0 flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm">
           <button
             className="px-3 py-1 text-xs bg-white/80 backdrop-blur-sm rounded-lg 
@@ -135,7 +141,7 @@ function App() {
         </div>
       )}
 
-      {useDeviceOrientation && (
+      {useDeviceOrientation && !isProjectPage && (
         <div className="fixed bottom-4 left-4 text-xs text-black/60 bg-white/80 p-2 rounded">
           Debug: Motion Control Active
         </div>
