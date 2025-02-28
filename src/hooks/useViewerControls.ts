@@ -2,6 +2,15 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { VIEWER_CONFIG } from '../config/viewer.config';
 
+// Erweitern der DeviceOrientationEvent-Typdeklaration für iOS
+interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
+  requestPermission?: () => Promise<string>;
+}
+
+interface DeviceOrientationEventStatic {
+  requestPermission?: () => Promise<string>;
+}
+
 interface ViewerControls {
   movementRef: React.MutableRefObject<{ x: number; y: number }>;
   lookRef: React.MutableRefObject<{ x: number; y: number }>;
@@ -14,8 +23,8 @@ interface ViewerControls {
 }
 
 export const useViewerControls = (): ViewerControls => {
-  const movementRef = useRef({ x: 0, y: 0 });
-  const lookRef = useRef({ x: 0, y: 0 });
+  const movementRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lookRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isLocked, setIsLocked] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [useDeviceOrientation, setUseDeviceOrientation] = useState(false);
@@ -44,8 +53,9 @@ export const useViewerControls = (): ViewerControls => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
     try {
-      if (isIOS && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        const permission = await DeviceOrientationEvent.requestPermission();
+      // Ordnungsgemäße Typbeschreibung für DeviceOrientationEvent
+      if (isIOS && typeof (DeviceOrientationEvent as unknown as DeviceOrientationEventStatic).requestPermission === 'function') {
+        const permission = await (DeviceOrientationEvent as unknown as DeviceOrientationEventStatic).requestPermission!();
         setUseDeviceOrientation(permission === 'granted');
         if (permission === 'granted') {
           alert(VIEWER_CONFIG.messages.orientationEnabled);
@@ -62,14 +72,31 @@ export const useViewerControls = (): ViewerControls => {
 
   // Start exploring handler
   const handleStartExploring = useCallback(async () => {
+    console.log("Starte Exploration-Modus");
     setIsLocked(true);
-    if (isMobile) await requestOrientationPermission();
-  }, [isMobile, requestOrientationPermission]);
+    
+    // Setze die Referenzen auf 0 beim Start
+    movementRef.current = { x: 0, y: 0 };
+    lookRef.current = { x: 0, y: 0 };
+
+    // Aktiviere Gerätesensoren auf Mobilgeräten, falls erlaubt
+    if (isMobile) {
+      try {
+        await requestOrientationPermission();
+        console.log("Geräteorientierung wurde aktiviert:", useDeviceOrientation);
+      } catch (error) {
+        console.error("Fehler beim Aktivieren der Geräteorientierung:", error);
+      }
+    }
+  }, [isMobile, requestOrientationPermission, useDeviceOrientation]);
 
   // Stop exploring handler
   const handleStopExploring = useCallback(() => {
+    console.log("Beende Exploration-Modus");
     setIsLocked(false);
     setUseDeviceOrientation(false);
+    
+    // Zurücksetzen der Bewegungsreferenzen
     movementRef.current = { x: 0, y: 0 };
     lookRef.current = { x: 0, y: 0 };
   }, []);

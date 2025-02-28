@@ -1,7 +1,9 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
+import { UnifiedVR360 } from '../backgrounds/UnifiedVR360'
+import { useViewerControls } from '../../hooks/useViewerControls'
 
 const ExhibitionRoom = () => {
   const width = 40
@@ -143,6 +145,50 @@ const DrawingStructure = ({
 
 const World = () => {
   const { scene } = useThree()
+  const { movementRef, lookRef, useDeviceOrientation } = useViewerControls()
+  const [showNormalWorld, setShowNormalWorld] = useState(true)
+  
+  // Setze einen Standardhintergrund, der für alle Seiten gilt
+  const [backgroundImage, setBackgroundImage] = useState('/components/Images/HW_360_VR_COLOR_CHECK_LOW.jpg')
+  
+  // Reagiere auf Events, die den Hintergrund ändern
+  useEffect(() => {
+    const handleBackgroundChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.imageUrl) {
+        console.log('Wechsle Hintergrund zu:', customEvent.detail.imageUrl);
+        setBackgroundImage(customEvent.detail.imageUrl);
+        // Optional: Projektinformationen speichern, wenn vorhanden
+        if (customEvent.detail.projectId) {
+          console.log('Für Projekt:', customEvent.detail.projectId);
+          // Hier könnten wir z.B. das aktuelle Projekt-ID in einem State speichern
+        }
+        // Blende die normale Welt aus, wenn ein 360°-Bild verwendet wird
+        setShowNormalWorld(false);
+      } else {
+        console.log('Warnung: changeBackground-Event ohne gültige imageUrl');
+      }
+    };
+
+    const handleResetBackground = () => {
+      // Wenn ein Reset angefordert wird, setzen wir auf den Standardhintergrund zurück
+      console.log('Setze Hintergrund zurück auf Standard');
+      // Sicherstellen, dass wir nicht in eine Endlosschleife geraten
+      if (showNormalWorld) {
+        console.log('Normale Welt wird bereits angezeigt, kein Reset nötig');
+        return;
+      }
+      setBackgroundImage('/components/Images/HW_360_VR_COLOR_CHECK_LOW.jpg');
+      setShowNormalWorld(true);
+    };
+
+    window.addEventListener('changeBackground', handleBackgroundChange);
+    window.addEventListener('resetBackground', handleResetBackground);
+    return () => {
+      window.removeEventListener('changeBackground', handleBackgroundChange);
+      window.removeEventListener('resetBackground', handleResetBackground);
+    };
+  }, [showNormalWorld]);
   
   const structures = useMemo(() => 
     Array(20).fill(null).map((_, i) => ({
@@ -156,32 +202,72 @@ const World = () => {
     }))
   , [])
 
-  // Scene setup
-  scene.background = new THREE.Color('#ffffff')
-  scene.fog = new THREE.Fog('#ffffff', 5, 30)
+  // Scene setup mit Fade-Effekt für sanftere Übergänge
+  if (showNormalWorld) {
+    scene.background = new THREE.Color('#ffffff');
+    scene.fog = new THREE.Fog('#ffffff', 5, 30);
+  } else {
+    scene.background = null;
+    scene.fog = null;
+  }
 
   return (
     <>
-      <ambientLight intensity={0.8} />
-      <directionalLight 
-        position={[10, 10, 5]} 
-        intensity={0.6} 
+      {/* Gemeinsame 360°-Hintergrundkomponente für alle Seiten */}
+      <UnifiedVR360
+        imageUrl={backgroundImage}
+        controls={{
+          movement: movementRef.current,
+          look: lookRef.current
+        }}
+        useDeviceOrientation={useDeviceOrientation}
       />
-      <pointLight 
-        position={[0, 6, 0]} 
-        intensity={0.4}
-      />
-
-      <ExhibitionRoom />
       
-      {structures.map((structure, index) => (
-        <DrawingStructure
-          key={index}
-          initialPosition={structure.position}
-          initialDelay={structure.delay}
-          colorScheme={structure.color}
-        />
-      ))}
+      {/* Minimaler Orientierungspunkt für Navigation */}
+      {!showNormalWorld && (
+        <mesh position={[0, 0, -3]} scale={[0.05, 0.05, 0.05]} visible={false}>
+          <boxGeometry />
+          <meshBasicMaterial color="#ffffff" opacity={0.1} transparent />
+        </mesh>
+      )}
+      
+      {/* Debug-Logs nur während der Entwicklung aktivieren */}
+      {/* {useFrame(() => {
+        if (movementRef.current.x !== 0 || movementRef.current.y !== 0 || 
+            lookRef.current.x !== 0 || lookRef.current.y !== 0) {
+          console.log('World: Steuerungswerte', 
+            'Movement:', JSON.stringify(movementRef.current), 
+            'Look:', JSON.stringify(lookRef.current),
+            'DeviceOrientation:', useDeviceOrientation
+          );
+        }
+      })} */}
+      
+      {/* Reguläre 3D-Welt, nur angezeigt wenn kein spezieller 360°-Hintergrund aktiv ist */}
+      {showNormalWorld && (
+        <>
+          <ambientLight intensity={0.8} />
+          <directionalLight 
+            position={[10, 10, 5]} 
+            intensity={0.6} 
+          />
+          <pointLight 
+            position={[0, 6, 0]} 
+            intensity={0.4}
+          />
+
+          <ExhibitionRoom />
+          
+          {structures.map((structure, index) => (
+            <DrawingStructure
+              key={index}
+              initialPosition={structure.position}
+              initialDelay={structure.delay}
+              colorScheme={structure.color}
+            />
+          ))}
+        </>
+      )}
     </>
   )
 }

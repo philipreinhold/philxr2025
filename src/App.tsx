@@ -1,5 +1,5 @@
 // src/App.tsx
-import { Suspense } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
@@ -19,6 +19,7 @@ import { DeviceOrientationControls } from './components/Controls/DeviceOrientati
 
 function App() {
   const location = useLocation();
+  const wasOnProjectPage = useRef(false);
   const {
     movementRef,
     lookRef,
@@ -30,9 +31,19 @@ function App() {
     requestOrientationPermission,
   } = useViewerControls();
 
-  // Überprüfe, ob wir uns auf einer Projektseite befinden
-  const isProjectPage = location.pathname.startsWith('/projects/');
-  const showWorld = !isProjectPage;
+  // Beim Routenwechsel den Hintergrund nur zurücksetzen,
+  // wenn wir von einer Projektseite zu einer Nicht-Projektseite wechseln
+  useEffect(() => {
+    if (location.pathname.startsWith('/projects/')) {
+      wasOnProjectPage.current = true;
+    } else if (wasOnProjectPage.current) {
+      // Nur zurücksetzen, wenn wir zuvor auf einer Projektseite waren
+      console.log('Verlassen der Projektseite - Hintergrund zurücksetzen');
+      const resetEvent = new CustomEvent('resetBackground', {});
+      window.dispatchEvent(resetEvent);
+      wasOnProjectPage.current = false;
+    }
+  }, [location.pathname]);
 
   return (
     <div className="relative w-screen h-screen bg-white">
@@ -47,8 +58,7 @@ function App() {
           dpr={[1, 2]}
         >
           <Suspense fallback={null}>
-            {/* Zeige World nur wenn wir nicht auf einer Projektseite sind */}
-            {showWorld && <World />}
+            <World />
             <MobileCameraControls 
               movementRef={movementRef}
               lookRef={lookRef}
@@ -77,7 +87,7 @@ function App() {
             </Routes>
           </AnimatePresence>
           
-          {isLocked && !isProjectPage && (
+          {isLocked && (
             <div className="fixed bottom-0 left-0 right-0 pb-4 pointer-events-none">
               <DualJoystickUI
                 onMove={(movement) => {
@@ -94,7 +104,7 @@ function App() {
         </div>
       </div>
 
-      {!isLocked && !isProjectPage && (
+      {!isLocked && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="space-y-4 text-center">
             <button 
@@ -114,7 +124,7 @@ function App() {
         </div>
       )}
 
-      {isLocked && !isProjectPage && (
+      {isLocked && (
         <div className="fixed top-0 left-0 right-0 flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm">
           <button
             className="px-3 py-1 text-xs bg-white/80 backdrop-blur-sm rounded-lg 
@@ -141,7 +151,7 @@ function App() {
         </div>
       )}
 
-      {useDeviceOrientation && !isProjectPage && (
+      {useDeviceOrientation && (
         <div className="fixed bottom-4 left-4 text-xs text-black/60 bg-white/80 p-2 rounded">
           Debug: Motion Control Active
         </div>

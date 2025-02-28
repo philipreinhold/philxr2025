@@ -19,11 +19,12 @@ export function DualJoystickUI({ onMove, onLook }: DualJoystickUIProps) {
  const arrowKeysPressed = useRef<Set<string>>(new Set());
  const lookVelocity = useRef({ x: 0, y: 0 });
  
- const DAMPING = 0.15;
- const MAX_OFFSET = 20;
- const LOOK_ACCELERATION = 0.008;
- const LOOK_DECELERATION = 0.92;
- const MAX_LOOK_VELOCITY = 0.15;
+ // Erhöhte Empfindlichkeit für bessere Steuerung
+ const DAMPING = 0.8;  // Erhöht von 0.3
+ const MAX_OFFSET = 30; // Erhöht von 25
+ const LOOK_ACCELERATION = 0.05; // Erhöht von 0.02
+ const LOOK_DECELERATION = 0.95; // Erhöht von 0.92
+ const MAX_LOOK_VELOCITY = 0.5; // Erhöht von 0.3
 
  const updateStickPosition = useCallback((currentPos: { x: number; y: number }, 
    startPos: { x: number; y: number }, 
@@ -112,7 +113,13 @@ export function DualJoystickUI({ onMove, onLook }: DualJoystickUIProps) {
  }, [onMove, onLook, resetStick]);
 
  useEffect(() => {
+   // Verarbeitung der Tastatureingaben für die 360°-Navigation
    const handleKeyDown = (e: KeyboardEvent) => {
+     // Verhindere die Standardaktion für Pfeiltasten (z.B. Bildlauf)
+     if (e.key.toLowerCase().includes('arrow')) {
+       e.preventDefault();
+     }
+     
      const key = e.key.toLowerCase();
      if (['w', 'a', 's', 'd'].includes(key)) {
        keysPressed.current.add(key);
