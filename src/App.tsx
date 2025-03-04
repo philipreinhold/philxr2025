@@ -12,6 +12,7 @@ import {
   Contact,
   Projects,
   Services,
+  Blog,
 } from './components';
 import { DualJoystickUI } from './components/Controls/DualJoystickUI';
 import { MobileCameraControls } from './components/Controls/MobileCameraControls';
@@ -84,6 +85,7 @@ function App() {
               <Route path="/projects/:projectId" element={<Projects />} />
               <Route path="/services" element={<Services />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/blog" element={<Blog />} />
             </Routes>
           </AnimatePresence>
           

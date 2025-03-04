@@ -8,6 +8,7 @@ export const translations = {
   },
   navigation: {
     projects: { en: 'Projects', es: 'Proyectos' },
+    blog: { en: 'Blog', es: 'Blog' },
     about: { en: 'About', es: 'Sobre mí' },
     services: { en: 'Services', es: 'Servicios' },
     contact: { en: 'Contact', es: 'Contacto' }

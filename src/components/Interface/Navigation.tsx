@@ -11,6 +11,7 @@ export const Navigation = ({ isMobile = false }) => {
     { path: '/projects', key: 'projects' },
     { path: '/about', key: 'about' },
     { path: '/services', key: 'services' },
+    { path: '/blog', key: 'blog' },
     { path: '/contact', key: 'contact' }
   ] as const;
 
